@@ -385,6 +385,7 @@ public class AccessibilityEventProcessor {
         && !mRingerModeAndScreenMonitor.isScreenOn()
         && !isPhoneRinging) {
       boolean isNotification = AccessibilityEventUtils.isNotificationEvent(event);
+      mSpeakWhenScreenOff = true;
       if (!mSpeakWhenScreenOff) {
         // If the user doesn't allow speech when the screen is
         // off, drop the event immediately.
