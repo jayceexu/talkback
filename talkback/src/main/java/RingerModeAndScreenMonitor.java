@@ -137,7 +137,8 @@ public class RingerModeAndScreenMonitor extends BroadcastReceiver {
         break;
       case Intent.ACTION_SCREEN_OFF:
         mIsScreenOn = false;
-        handleScreenOff(eventId);
+ 	// Jian: don't handle screen off when detecting the screen is off
+        //handleScreenOff(eventId);
         break;
       case Intent.ACTION_USER_PRESENT:
         handleDeviceUnlocked(eventId);

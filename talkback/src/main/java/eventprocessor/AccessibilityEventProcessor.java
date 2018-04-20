@@ -390,12 +390,14 @@ public class AccessibilityEventProcessor {
         // off, drop the event immediately.
         LogUtils.log(this, Log.VERBOSE, "Drop event due to screen state and user pref");
         return true;
-      } else if (!isNotification) {
+      } 
+	// Jian: When screen is off, talkback still keep reading out screen content
+ 	//else if (!isNotification) {
         // If the user allows speech when the screen is off, drop
         // all non-notification events.
-        LogUtils.log(this, Log.VERBOSE, "Drop non-notification event due to screen state");
-        return true;
-      }
+        //LogUtils.log(this, Log.VERBOSE, "Drop non-notification event due to screen state");
+        //return true;
+      //}
     }
 
     final boolean canInterruptRadialMenu =

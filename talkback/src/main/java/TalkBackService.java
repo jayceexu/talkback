@@ -733,7 +733,8 @@ public class TalkBackService extends AccessibilityService
           && keyEvent.getAction() == KeyEvent.ACTION_DOWN
           && keyEvent.getKeyCode() != KeyEvent.KEYCODE_VOLUME_DOWN
           && keyEvent.getKeyCode() != KeyEvent.KEYCODE_VOLUME_UP) {
-        interruptAllFeedback(false /* stopTtsSpeechCompletely */);
+	// Jian: when screen turns off, voice feedback still keeps on
+        //interruptAllFeedback(false /* stopTtsSpeechCompletely */);
       }
     }
 

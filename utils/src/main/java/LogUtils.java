@@ -44,7 +44,8 @@ public class LogUtils {
    * @param args String formatter arguments.
    */
   public static void log(Object source, int priority, String format, Object... args) {
-    if (priority < sLogLevel) {
+    if (priority < Log.VERBOSE) {
+      Log.i("XUJAY_ULPM", "Skiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiip: " + sLogLevel);
       return;
     }
 
