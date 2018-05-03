@@ -42,6 +42,7 @@ import android.content.res.Resources;
 import android.graphics.Region;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
@@ -117,6 +118,15 @@ import com.google.android.accessibility.utils.output.FeedbackController;
 import com.google.android.accessibility.utils.output.SpeechController;
 import com.google.android.accessibility.utils.output.SpeechController.UtteranceCompleteRunnable;
 import com.google.android.accessibility.utils.output.SpeechControllerImpl;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.Wearable;
+
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -125,7 +135,8 @@ import java.util.Locale;
 
 /** An {@link AccessibilityService} that provides spoken, haptic, and audible feedback. */
 public class TalkBackService extends AccessibilityService
-    implements Thread.UncaughtExceptionHandler, SpeechController.Delegate, SharedKeyEvent.Listener {
+    implements Thread.UncaughtExceptionHandler, SpeechController.Delegate, SharedKeyEvent.Listener,
+        DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, MessageApi.MessageListener {
 
   // Set to TRUE to use experimental focus management feature.
   public static final boolean USE_A11Y_FOCUS_MANAGER = false;
@@ -322,9 +333,20 @@ public class TalkBackService extends AccessibilityService
 
   private SpeakPasswordsManager mSpeakPasswordsManager;
 
+  final static String TAG = "TalkBackService";
+  private GoogleApiClient mGoogleApiClient;
+  private static final String MESSAGE = "/message";
+
   @Override
   public void onCreate() {
     super.onCreate();
+    mGoogleApiClient = new GoogleApiClient.Builder(this)
+            .addApi(Wearable.API)
+            .addConnectionCallbacks(this)
+            .build();
+    mGoogleApiClient.connect();
+
+    Log.i(TAG, "Creating..........");
 
     if (BuildVersionUtils.isAtLeastN()) {
       mOnMagnificationChangedListener =
@@ -2194,5 +2216,39 @@ public class TalkBackService extends AccessibilityService
         DisableTalkBackCompleteAction.this.notifyAll();
       }
     }
+  }
+
+  private void sendMessage(final String path, final String text) {
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
+
+        for (Node node: nodes.getNodes()) {
+          MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(
+                  mGoogleApiClient, node.getId(), path, text.getBytes() ).await();
+        }
+      }
+    }).start();
+  }
+
+  @Override
+  public void onConnected(Bundle bundle) {
+    Log.d(TAG, "onConnected....");
+    Wearable.MessageApi.addListener(mGoogleApiClient, this);
+  }
+
+  @Override
+  public void onConnectionSuspended(int i) {
+    Log.d("Connection Suspended", "Connection suspended");
+  }
+
+  public void onDataChanged(DataEventBuffer dataEvents) {
+
+  }
+
+  @Override
+  public void onMessageReceived(MessageEvent messageEvent) {
+    Log.i(TAG, "~~~~~~~~~~~~~Received msg: " + new String(messageEvent.getData()));
   }
 }
