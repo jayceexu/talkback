@@ -45,6 +45,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.StrictMode;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
@@ -61,6 +63,8 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.CheckBox;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.android.talkback.TalkBackPreferencesActivity;
 import com.google.android.accessibility.compositor.Compositor;
 import com.google.android.accessibility.compositor.EventFilter;
@@ -344,6 +348,8 @@ public class TalkBackService extends AccessibilityService
   private GoogleApiClient mGoogleApiClient;
   private static final String MESSAGE = "/message";
 
+  private Handler mHandler;
+
   @Override
   public void onCreate() {
     super.onCreate();
@@ -353,6 +359,27 @@ public class TalkBackService extends AccessibilityService
             .build();
     mGoogleApiClient.connect();
     execute();
+    mHandler = new Handler(Looper.getMainLooper()){
+      @Override
+      public void handleMessage(Message msg) {
+        // TODO Auto-generated method stub
+        super.handleMessage(msg);
+        switch(msg.what) {
+          case 1:
+            Bundle res = msg.getData();
+            String actualResult = res.getString("res");
+            Toast.makeText(getApplicationContext(), "Sent Message from Client is:"+actualResult, Toast.LENGTH_LONG).show();
+
+            // Received message
+          case 2:
+            res = msg.getData();
+            actualResult = res.getString("res");
+            Log.i(TAG, "Received message " + actualResult);
+
+        }
+
+      }
+    };
     Log.i(TAG, "Creating..........");
 
     if (BuildVersionUtils.isAtLeastN()) {
@@ -2274,7 +2301,7 @@ public class TalkBackService extends AccessibilityService
 
     @Override
     protected String doInBackground(Void... params) {
-      int server_port = 45357;
+      int server_port = 45358;
       byte[] message = new byte[1500];
       DatagramPacket p = new DatagramPacket(message, message.length);
       DatagramSocket s = null;
@@ -2302,12 +2329,33 @@ public class TalkBackService extends AccessibilityService
           int port = p.getPort();
           Log.d("RTP@ IPAddress : ", ipaddress.toString());
           Log.d("RTP@ Port : ", Integer.toString(port));
+
+          onReceiveMsg(rec_str);
         }
       } catch (Exception e) {
         Log.d("saurav", "RTP@ Exception is:" + e);
       }
       s.close();
       return new String(message);
+    }
+
+    private void onReceiveMsg(String received) {
+      Bundle resultStr = new Bundle();
+      resultStr.putString("res", received);
+      Message msg = mHandler.obtainMessage(2);
+      msg.setData(resultStr);
+      mHandler.sendMessage(msg);
+      Log.d("saurav","RTP@ Received String is:"+ received);
+    }
+
+    @Override
+    protected void onPostExecute(String result) {
+      Bundle resultStr = new Bundle();
+      resultStr.putString("res",result);
+      Message msg = mHandler.obtainMessage(1);
+      msg.setData(resultStr);
+      mHandler.sendMessage(msg);
+      Log.d("saurav","RTP@ Received String is:"+result);
     }
   }
 }
