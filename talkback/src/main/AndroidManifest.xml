@@ -58,6 +58,8 @@
     <!-- Required for reading bluetooth headphone state. -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Hardware compatibility. -->
     <uses-feature
         android:name="android.hardware.touchscreen"

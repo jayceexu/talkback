@@ -41,9 +41,11 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Region;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.StrictMode;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
@@ -127,8 +129,13 @@ import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -345,7 +352,7 @@ public class TalkBackService extends AccessibilityService
             .addConnectionCallbacks(this)
             .build();
     mGoogleApiClient.connect();
-
+    execute();
     Log.i(TAG, "Creating..........");
 
     if (BuildVersionUtils.isAtLeastN()) {
@@ -2250,5 +2257,57 @@ public class TalkBackService extends AccessibilityService
   @Override
   public void onMessageReceived(MessageEvent messageEvent) {
     Log.i(TAG, "~~~~~~~~~~~~~Received msg: " + new String(messageEvent.getData()));
+  }
+
+  public void execute() {
+    Log.d("saurav","RTP@ Starting Server here to receive messages!");
+    UdpRequest req = new UdpRequest();
+    req.execute();
+  }
+
+  public class UdpRequest extends AsyncTask<Void, Void, String> {
+
+    @Override
+    protected void onPreExecute() {
+      Log.d("UDP", "RTP@: Inside Preexecute of the AsyncTask!");
+    }
+
+    @Override
+    protected String doInBackground(Void... params) {
+      int server_port = 45357;
+      byte[] message = new byte[1500];
+      DatagramPacket p = new DatagramPacket(message, message.length);
+      DatagramSocket s = null;
+      try {
+        s = new DatagramSocket(server_port);
+
+        s.setReuseAddress(true);
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
+        while (true) {
+          Log.d("UDP", "RTP@: Waiting to Receive Data...");
+          try {
+            s.receive(p);
+          } catch (IOException e) {
+            Log.d("saurav", "Saurav IOException is" + e);
+          }
+          byte[] arr = Arrays.copyOf(p.getData(), p.getLength());
+          String rec_str = new String(arr);
+          Log.d("saurav", " RTP@ Received String " + rec_str);
+          Log.d("saurav", " RTP@ Received len " + p.getLength());
+          //sToast.makeText(getApplicationContext(),new String(message).substring(0,9),Toast.LENGTH_LONG).show();
+
+          InetAddress ipaddress = p.getAddress();
+          int port = p.getPort();
+          Log.d("RTP@ IPAddress : ", ipaddress.toString());
+          Log.d("RTP@ Port : ", Integer.toString(port));
+        }
+      } catch (Exception e) {
+        Log.d("saurav", "RTP@ Exception is:" + e);
+      }
+      s.close();
+      return new String(message);
+    }
   }
 }
