@@ -350,6 +350,7 @@ public class TalkBackService extends AccessibilityService
 
   private Handler mHandler;
 
+  private Boolean isServerStarted = false;
   @Override
   public void onCreate() {
     super.onCreate();
@@ -358,28 +359,28 @@ public class TalkBackService extends AccessibilityService
             .addConnectionCallbacks(this)
             .build();
     mGoogleApiClient.connect();
-    execute();
-    mHandler = new Handler(Looper.getMainLooper()){
-      @Override
-      public void handleMessage(Message msg) {
-        // TODO Auto-generated method stub
-        super.handleMessage(msg);
-        switch(msg.what) {
-          case 1:
-            Bundle res = msg.getData();
-            String actualResult = res.getString("res");
-            Toast.makeText(getApplicationContext(), "Sent Message from Client is:"+actualResult, Toast.LENGTH_LONG).show();
+//    mHandler = new Handler(Looper.getMainLooper()){
+//      @Override
+//      public void handleMessage(Message msg) {
+//        // TODO Auto-generated method stub
+//        super.handleMessage(msg);
+//        switch(msg.what) {
+//          case 1:
+//            Bundle res = msg.getData();
+//            String actualResult = res.getString("res");
+//            Toast.makeText(getApplicationContext(), "Sent Message from Client is:"+actualResult, Toast.LENGTH_LONG).show();
+//
+//            // Received message
+//          case 2:
+//            res = msg.getData();
+//            actualResult = res.getString("res");
+//            Log.i(TAG, "Received message " + actualResult);
+//
+//        }
+//
+//      }
+//    };
 
-            // Received message
-          case 2:
-            res = msg.getData();
-            actualResult = res.getString("res");
-            Log.i(TAG, "Received message " + actualResult);
-
-        }
-
-      }
-    };
     Log.i(TAG, "Creating..........");
 
     if (BuildVersionUtils.isAtLeastN()) {
@@ -424,6 +425,8 @@ public class TalkBackService extends AccessibilityService
     initializeInfrastructure();
 
     SharedKeyEvent.register(this);
+    //execute();
+
   }
 
   /**
@@ -543,6 +546,10 @@ public class TalkBackService extends AccessibilityService
 
   @Override
   public void onAccessibilityEvent(AccessibilityEvent event) {
+    if (!isServerStarted) {
+      execute();
+      isServerStarted = true;
+    }
     Performance perf = Performance.getInstance();
     EventId eventId = perf.onEventReceived(event);
 
@@ -2305,6 +2312,7 @@ public class TalkBackService extends AccessibilityService
       byte[] message = new byte[1500];
       DatagramPacket p = new DatagramPacket(message, message.length);
       DatagramSocket s = null;
+      String rec_str = "";
       try {
         s = new DatagramSocket(server_port);
 
@@ -2320,7 +2328,7 @@ public class TalkBackService extends AccessibilityService
             Log.d("saurav", "Saurav IOException is" + e);
           }
           byte[] arr = Arrays.copyOf(p.getData(), p.getLength());
-          String rec_str = new String(arr);
+          rec_str = new String(arr);
           Log.d("saurav", " RTP@ Received String " + rec_str);
           Log.d("saurav", " RTP@ Received len " + p.getLength());
           //sToast.makeText(getApplicationContext(),new String(message).substring(0,9),Toast.LENGTH_LONG).show();
@@ -2330,32 +2338,28 @@ public class TalkBackService extends AccessibilityService
           Log.d("RTP@ IPAddress : ", ipaddress.toString());
           Log.d("RTP@ Port : ", Integer.toString(port));
 
-          onReceiveMsg(rec_str);
+          //onReceiveMsg(rec_str);
         }
+
       } catch (Exception e) {
         Log.d("saurav", "RTP@ Exception is:" + e);
       }
       s.close();
-      return new String(message);
+      return rec_str;
     }
 
     private void onReceiveMsg(String received) {
-      Bundle resultStr = new Bundle();
-      resultStr.putString("res", received);
-      Message msg = mHandler.obtainMessage(2);
-      msg.setData(resultStr);
-      mHandler.sendMessage(msg);
-      Log.d("saurav","RTP@ Received String is:"+ received);
+//      Bundle resultStr = new Bundle();
+//      resultStr.putString("res", received);
+//      Message msg = mHandler.obtainMessage(2);
+//      msg.setData(resultStr);
+//      mHandler.sendMessage(msg);
+//      Log.d("saurav","RTP@ Received String is:"+ received);
     }
 
     @Override
     protected void onPostExecute(String result) {
-      Bundle resultStr = new Bundle();
-      resultStr.putString("res",result);
-      Message msg = mHandler.obtainMessage(1);
-      msg.setData(resultStr);
-      mHandler.sendMessage(msg);
-      Log.d("saurav","RTP@ Received String is:"+result);
+      Log.i(TAG, "Post-execute....");
     }
   }
 }
