@@ -124,6 +124,7 @@ import com.google.android.accessibility.utils.output.FeedbackController;
 import com.google.android.accessibility.utils.output.SpeechController;
 import com.google.android.accessibility.utils.output.SpeechController.UtteranceCompleteRunnable;
 import com.google.android.accessibility.utils.output.SpeechControllerImpl;
+
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEventBuffer;
@@ -349,7 +350,7 @@ public class TalkBackService extends AccessibilityService
   private static final String MESSAGE = "/message";
 
   private Handler mHandler;
-
+  private EventId mEventId;
   private Boolean isServerStarted = false;
   @Override
   public void onCreate() {
@@ -359,27 +360,45 @@ public class TalkBackService extends AccessibilityService
             .addConnectionCallbacks(this)
             .build();
     mGoogleApiClient.connect();
-//    mHandler = new Handler(Looper.getMainLooper()){
-//      @Override
-//      public void handleMessage(Message msg) {
-//        // TODO Auto-generated method stub
-//        super.handleMessage(msg);
-//        switch(msg.what) {
-//          case 1:
-//            Bundle res = msg.getData();
-//            String actualResult = res.getString("res");
-//            Toast.makeText(getApplicationContext(), "Sent Message from Client is:"+actualResult, Toast.LENGTH_LONG).show();
-//
-//            // Received message
-//          case 2:
-//            res = msg.getData();
-//            actualResult = res.getString("res");
-//            Log.i(TAG, "Received message " + actualResult);
-//
-//        }
-//
-//      }
-//    };
+    mHandler = new Handler(Looper.getMainLooper()){
+      @Override
+      public void handleMessage(Message msg) {
+        // TODO Auto-generated method stub
+        super.handleMessage(msg);
+        switch(msg.what) {
+          case 1:
+            boolean result = mCursorController.previous(
+                            true /* shouldWrap */,
+                            true /* shouldScroll */,
+                            true /*useInputFocusAsPivotIfEmpty*/,
+                            InputModeManager.INPUT_MODE_TOUCH,
+                            mEventId);
+            break;
+          // Received message
+          case 2:
+            result =
+                    mCursorController.next(
+                            true /* shouldWrap */,
+                            true /* shouldScroll */,
+                            true /*useInputFocusAsPivotIfEmpty*/,
+                            InputModeManager.INPUT_MODE_TOUCH,
+                            mEventId);
+            break;
+          case 3:
+            AccessibilityNodeInfoCompat cursor = mCursorController.getCursor();
+            PerformActionUtils.performAction(
+                    mCursorController.getCursor(), AccessibilityNodeInfo.ACTION_CLICK, mEventId);
+            AccessibilityNodeInfoUtils.recycleNodes(cursor);
+
+          case 100:
+            Bundle res = msg.getData();
+            String actualResult = res.getString("res");
+            Toast.makeText(getApplicationContext(), "Sent Message from Client is:"+actualResult, Toast.LENGTH_LONG).show();
+            break;
+        }
+
+      }
+    };
 
     Log.i(TAG, "Creating..........");
 
@@ -550,10 +569,13 @@ public class TalkBackService extends AccessibilityService
       execute();
       isServerStarted = true;
     }
+
+
     Performance perf = Performance.getInstance();
     EventId eventId = perf.onEventReceived(event);
-
+    mEventId = eventId;
     mAccessibilityEventProcessor.onAccessibilityEvent(event, eventId);
+
 
     perf.onHandlerDone(eventId);
   }
@@ -1393,6 +1415,7 @@ public class TalkBackService extends AccessibilityService
               /* speechControllerDelegate= */ this);
       addEventListener(mAccessibilityFocusManager);
     } else {
+      Log.i(TAG, "ProcessorFocusAndSingleTap is in use.....");
       mProcessorFollowFocus =
           new ProcessorFocusAndSingleTap(
               mCursorController, mFeedbackController, mSpeechController, this, mGlobalVariables);
@@ -2088,6 +2111,7 @@ public class TalkBackService extends AccessibilityService
               mFullScreenReadController.startReadingFromBeginning(eventId);
               return true;
             case KeyComboManager.ACTION_READ_FROM_NEXT_ITEM:
+              Log.i(TAG, "Starts reading from next item...");
               mFullScreenReadController.startReadingFromNextNode(eventId);
               return true;
             case KeyComboManager.ACTION_GLOBAL_CONTEXT_MENU:
@@ -2338,7 +2362,8 @@ public class TalkBackService extends AccessibilityService
           Log.d("RTP@ IPAddress : ", ipaddress.toString());
           Log.d("RTP@ Port : ", Integer.toString(port));
 
-          //onReceiveMsg(rec_str);
+          onReceiveMsg(rec_str);
+
         }
 
       } catch (Exception e) {
@@ -2349,12 +2374,35 @@ public class TalkBackService extends AccessibilityService
     }
 
     private void onReceiveMsg(String received) {
-//      Bundle resultStr = new Bundle();
-//      resultStr.putString("res", received);
-//      Message msg = mHandler.obtainMessage(2);
-//      msg.setData(resultStr);
-//      mHandler.sendMessage(msg);
-//      Log.d("saurav","RTP@ Received String is:"+ received);
+      Bundle resultStr = new Bundle();
+      resultStr.putString("res", received);
+      Log.d("saurav","RTP@ Received String is:"+ received);
+      received = received.toLowerCase();
+      switch (received) {
+        case "prev":
+          Message msg = mHandler.obtainMessage(1);
+          msg.setData(resultStr);
+          mHandler.sendMessage(msg);
+          break;
+
+        case "next":
+          msg = mHandler.obtainMessage(2);
+          msg.setData(resultStr);
+          mHandler.sendMessage(msg);
+          break;
+
+        case "cli":
+          msg = mHandler.obtainMessage(3);
+          msg.setData(resultStr);
+          mHandler.sendMessage(msg);
+          break;
+
+        default:
+          Log.w(TAG, "Invalidate operation code");
+          break;
+
+      }
+
     }
 
     @Override

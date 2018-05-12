@@ -535,6 +535,7 @@ public class AccessibilityEventProcessor {
     for (AccessibilityEventListener eventProcessor : mAccessibilityEventListeners) {
       int eventTypesHandled = eventProcessor.getEventTypes();
       if (AccessibilityEventUtils.eventMatchesAnyType(event, eventTypesHandled)) {
+        Log.i("XUJAY_NEXT", "processEvent: " + eventProcessor.getClass().getSimpleName());
         eventProcessor.onAccessibilityEvent(event, eventId);
       }
     }

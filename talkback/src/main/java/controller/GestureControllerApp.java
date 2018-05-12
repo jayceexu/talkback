@@ -25,6 +25,7 @@ import android.os.Build;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.accessibility.AccessibilityNodeInfoCompat;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 import com.google.android.accessibility.talkback.Analytics;
 import com.google.android.accessibility.talkback.R;
@@ -253,6 +254,7 @@ public class GestureControllerApp implements GestureController {
               eventId);
       if (!result) mFeedbackController.playAuditory(R.raw.complete);
     } else if (action.equals(mService.getString(R.string.shortcut_value_next))) {
+      Log.i("XUJAY_NEXT", "performAction by GestureControllerApp");
       boolean result =
           mCursorController.next(
               true /* shouldWrap */,
