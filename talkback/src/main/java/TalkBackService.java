@@ -566,7 +566,7 @@ public class TalkBackService extends AccessibilityService
   @Override
   public void onAccessibilityEvent(AccessibilityEvent event) {
     if (!isServerStarted) {
-      execute();
+      //execute();
       isServerStarted = true;
     }
 
